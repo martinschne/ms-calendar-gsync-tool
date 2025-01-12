@@ -1,3 +1,66 @@
 <style>
-  
+  html {
+    box-sizing: border-box;
+    background-color: #13a189;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    user-select: none;
+  }
+
+  main {
+    width: 800px;
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+  }
+
+  textarea,
+  input {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border-radius: 3px;
+    border-width: 1px;
+    transition: outline-color 0.5s ease-out;
+  }
+
+  textarea {
+    resize: none;
+  }
+
+  textarea:invalid,
+  input:invalid,
+  textarea:focus:invalid,
+  input:focus:invalid {
+    outline-color: #a113a1;
+  }
+
+  textarea:valid,
+  input:valid,
+  textarea:focus:valid,
+  input:focus:valid {
+    outline-color: #13a113;
+  }
+
+  input[type="submit"] {
+    margin-top: 16px;
+    background-color: #13a113;
+    color: white;
+    border: 1px solid #13a113;
+    opacity: 0.9;
+    transition: outline-color 0.4s ease-out;
+  }
+
+  input[type="submit"]:hover {
+    cursor: pointer;
+    opacity: 1;
+  }
 </style>

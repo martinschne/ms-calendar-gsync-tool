@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <?!= include('Stylesheet'); ?>
+  </head>
+  <body>
+    <main>
+      <h1>MS Calendar GSync Tool</h1>
+      <p>
+        To start the synchronization fill out the form and press the
+        <strong>Start</strong> button.
+      </p>
+      <form id="source-data-form" onsubmit="handleFormSubmit(this)">
+        <label for="bearer-token">Bearer Token:</label>
+        <textarea
+          id="bearer-token"
+          name="bearer-token"
+          rows="3"
+          placeholder="Enter Bearer Token (e.g., YOUR_TOKEN_HERE)"
+          required
+        ></textarea>
+        <label for="common-calendar-id">Common Calendar ID:</label>
+        <input
+          name="common-calendar-id"
+          placeholder="Enter 1st calendar ID (e.g., 20h4e267-68f9-7402-ee23-8d93f915470i)"
+          type="text"
+          required
+        />
+        <label for="one-on-one-calendar-id">1 on 1 Calendar ID:</label>
+        <input
+          name="one-on-one-calendar-id"
+          placeholder="Enter 2nd calendar ID (e.g., j326gf25-60i7-9f3g-34k5-4h6kk71k674k)"
+          type="text"
+          required
+        />
+        <input type="submit" value="Submit" />
+      </form>
+    </main>
+    <div id="output"></div>
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>

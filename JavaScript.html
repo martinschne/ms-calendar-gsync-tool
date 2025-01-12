@@ -1,16 +1,16 @@
 <script>
   // Prevent forms from submitting.
   function preventFormSubmit() {
-    var forms = document.querySelectorAll('form');
+    var forms = document.querySelectorAll("form");
     for (var i = 0; i < forms.length; i++) {
-      forms[i].addEventListener('submit', function(event) {
+      forms[i].addEventListener("submit", function (event) {
         event.preventDefault();
       });
     }
   }
 
-  window.addEventListener('load', function() {
+  window.addEventListener("load", function () {
     preventFormSubmit();
-    console.log('Page is loaded');
+    console.log("Page is loaded");
   });
 </script>
