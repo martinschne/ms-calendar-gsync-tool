@@ -6,12 +6,13 @@
   </head>
   <body>
     <main>
-      <h1>MS Calendar GSync Tool</h1>
+      <h1>MS Calendar Transfer Tool</h1>
       <p>
-        To start the synchronization fill out the form and press the
-        <strong>Start</strong> button.
+        Fill out the form, press <em>Submit</em> button and allow the app to
+        access your Google Calendar. <br />Be aware that the event transfer can
+        take couple of minutes. <br />Author: Martin Schneider
       </p>
-      <form id="source-data-form" onsubmit="handleFormSubmit(this)">
+      <form id="request-data-form" onsubmit="handleFormSubmit(this)">
         <label for="bearer-token">Bearer Token:</label>
         <textarea
           id="bearer-token"
@@ -34,10 +35,22 @@
           type="text"
           required
         />
-        <input type="submit" value="Submit" />
+        <input id="submitBtn" type="submit" value="Submit" />
       </form>
     </main>
     <div id="output"></div>
+    <!-- Overlay for blocking interactions during spinner activity -->
+    <div class="overlay"></div>
+    <!-- Dialog to show synchronisation results -->
+    <div class="dialog-container">
+      <div id="messageContent">Loading...</div>
+      <button class="ok-button" onclick="closeDialog()">OK</button>
+    </div>
+    <!-- Spinner container -->
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p class="sync-state">Please wait...</p>
+    </div>
     <?!= include('JavaScript'); ?>
   </body>
 </html>

@@ -1,16 +1,77 @@
 <script>
-  // Prevent forms from submitting.
+  const MAX_SYNC_TIME_MS = 1000 * 60 * 20;
+
+  // Prevent forms from submitting unexpectedly on error.
   function preventFormSubmit() {
-    var forms = document.querySelectorAll("form");
-    for (var i = 0; i < forms.length; i++) {
-      forms[i].addEventListener("submit", function (event) {
-        event.preventDefault();
-      });
-    }
+    var requestForm = document.querySelector("#request-data-form");
+    requestForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+    });
   }
 
-  window.addEventListener("load", function () {
-    preventFormSubmit();
-    console.log("Page is loaded");
-  });
+  window.addEventListener("load", preventFormSubmit);
+
+  function showSpinner() {
+    document.querySelector(".overlay").style.display = "block";
+    document.querySelector(".spinner-container").style.display = "block";
+  }
+
+  function hideSpinner() {
+    document.querySelector(".overlay").style.display = "none";
+    document.querySelector(".spinner-container").style.display = "none";
+  }
+
+  function setMessage(content) {
+    document.getElementById("messageContent").innerText = content;
+  }
+
+  // Show the overlay and dialog with custom message, hide the spinner
+  function showDialog(message) {
+    document.querySelector(".overlay").style.display = "block";
+    document.querySelector(".dialog-container").style.display = "block";
+    document.querySelector(".spinner-container").style.display = "none";
+
+    setMessage(message);
+  }
+
+  // Close the dialog (by OK button)
+  function closeDialog() {
+    document.querySelector(".overlay").style.display = "none";
+    document.querySelector(".dialog-container").style.display = "none";
+
+    // reenable form submission
+    disableSubmitBtn(false);
+  }
+
+  function displaySuccessMessage(results) {
+    showDialog(
+      `Out of ${results.eventsCount} events: ${results.created} created, ${results.updated} updated, ${results.skipped} skipped!`
+    );
+  }
+  r;
+  function displayErrorMessage(results) {
+    showDialog("Error, events were not synchronized! Please try again later.");
+  }
+
+  function disableSubmitBtn(disabled) {
+    document.getElementById("submitBtn").disabled = disabled;
+  }
+
+  // handle submitting form (validation)
+  function handleFormSubmit(formObject) {
+    showSpinner();
+    disableSubmitBtn(true); // prevent resubmitting on sync
+
+    // start synchronisation and register succes/error handlers
+    google.script.run
+      .withFailureHandler(displayErrorMessage)
+      .withSuccessHandler(displaySuccessMessage)
+      .startSync(formObject);
+
+    // avoid hanging spinner on backend freeze
+    timeout = setTimeout(() => {
+      showDialog("Synchronising took too long time! Please try again later.");
+      clearTimeout(timeout);
+    }, MAX_SYNC_TIME_MS);
+  }
 </script>
