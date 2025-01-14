@@ -46,7 +46,7 @@ function fetchAndSyncEvents_(bearerToken, calendarIds) {
 /**
  * Returns the events that are within specified range
  */
-function filterEventsByDate(eventsData, fromDate, toDate) {
+function filterEventsByDate_(eventsData, fromDate, toDate) {
   filteredEvents = [];
 
   eventsData.forEach(function (event) {
@@ -63,26 +63,13 @@ function filterEventsByDate(eventsData, fromDate, toDate) {
 }
 
 /**
- * Adds events to the user's Google Calendar.
- * @param {Array} eventsData The event data array to be added to the calendar.
+ * Remove existing masterschool events in synchronisation range.
  */
-function syncEventsToCalendar_(eventsData) {
-  // filter fetched events by synchronisation range defined by 'fromDate' & 'toDate'
-  const fromDate = new Date(); // today
-  const toDate = new Date(fromDate.getTime() + SYNC_UP_TO_DAYS_IN_MS);
-  const filteredEvents = filterEventsByDate(eventsData, fromDate, toDate);
-  const eventsCount = filteredEvents.length;
-
-  const calendar = CalendarApp.getDefaultCalendar();
-
-  let eventCounter = 0;
-  let processed = 0;
-  let skipped = 0;
-
-  // search for existing events in synchronisation range
+function removePrevSyncEvents_(calendar, fromDate, toDate) {
+  // search for all events in synchronisation range
   const existingEvents = calendar.getEvents(fromDate, toDate);
 
-  // remove the existing masterschool events in synchronisation range
+  // remove events containing ms id tag
   existingEvents.forEach(function (existingEvent) {
     msEventId = existingEvent.getTag(MS_ID_TAG);
     if (msEventId) {
@@ -93,9 +80,20 @@ function syncEventsToCalendar_(eventsData) {
       );
     }
   });
+}
+
+/**
+ * Add new events in synchronisation range to the Calendar
+ */
+function addNewEvents_(calendar, events) {
+  const eventsCount = events.length;
+
+  let eventCounter = 0;
+  let processed = 0;
+  let skipped = 0;
 
   // create new events from filtered events in synchronisation range
-  filteredEvents.forEach(function (event) {
+  events.forEach(function (event) {
     try {
       // prepare new event attributes
       const title = event.title;
@@ -134,6 +132,21 @@ function syncEventsToCalendar_(eventsData) {
 }
 
 /**
+ * Remove previous and add new ms events in sync range to the user's Google Calendar.
+ */
+function syncEventsToCalendar_(eventsData) {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const fromDate = new Date(); // today
+  const toDate = new Date(fromDate.getTime() + SYNC_UP_TO_DAYS_IN_MS);
+
+  removePrevSyncEvents_(calendar, fromDate, toDate);
+
+  const filteredEvents = filterEventsByDate_(eventsData, fromDate, toDate);
+
+  return addNewEvents_(calendar, filteredEvents);
+}
+
+/**
  * Runs the html service to display the UI
  */
 function doGet() {
@@ -161,16 +174,4 @@ function startSync(formObject) {
  */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-// Only for testing purposes, deletes all events from calendar!
-function deleteAllEvents_() {
-  const calendar = CalendarApp.getDefaultCalendar();
-  const events = calendar.getEvents(
-    new Date("January 1, 2000"),
-    new Date("December 31, 2100")
-  );
-  for (var i = 0; i < events.length; i++) {
-    events[i].deleteEvent();
-  }
 }
