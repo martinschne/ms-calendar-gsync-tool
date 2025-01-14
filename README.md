@@ -11,6 +11,7 @@ If you need assistance, let me know.
 - Google Chrome
 - Masterschool account
 - Google Account
+- Link to this web application (ask me for it)
 
 #### Here are the steps for first time use:
 
