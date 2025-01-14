@@ -1,4 +1,6 @@
 const END_DATE = "2025-07-11T19:43:20.268Z";
+const SYNC_UP_TO_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
+const MS_ID_TAG = "msEventId";
 
 /**
  * Fetches events from Masterschool Calendar and adds them to Google Calendar.
@@ -33,7 +35,7 @@ function fetchAndSyncEvents_(bearerToken, calendarIds) {
   let results = null;
 
   if (response.getResponseCode() == 201) {
-    var eventsData = JSON.parse(response.getContentText());
+    const eventsData = JSON.parse(response.getContentText());
     results = syncEventsToCalendar_(eventsData);
   } else {
     Logger.log("Error fetching events: " + response.getResponseCode());
@@ -42,80 +44,82 @@ function fetchAndSyncEvents_(bearerToken, calendarIds) {
 }
 
 /**
+ * Returns the events that are within specified range
+ */
+function filterEventsByDate(eventsData, fromDate, toDate) {
+  filteredEvents = [];
+
+  eventsData.forEach(function (event) {
+    const eventStartDate = new Date(event.start);
+    const eventEndDate = new Date(event.end);
+
+    // add date in range fromDate - toDate to filteredEvents
+    if (eventStartDate >= fromDate && eventEndDate <= toDate) {
+      filteredEvents.push(event);
+    }
+  });
+
+  return filteredEvents;
+}
+
+/**
  * Adds events to the user's Google Calendar.
  * @param {Array} eventsData The event data array to be added to the calendar.
  */
 function syncEventsToCalendar_(eventsData) {
+  // filter fetched events by synchronisation range defined by 'fromDate' & 'toDate'
+  const fromDate = new Date(); // today
+  const toDate = new Date(fromDate.getTime() + SYNC_UP_TO_DAYS_IN_MS);
+  const filteredEvents = filterEventsByDate(eventsData, fromDate, toDate);
+  const eventsCount = filteredEvents.length;
+
   const calendar = CalendarApp.getDefaultCalendar();
-  const eventsCount = eventsData.length;
 
   let eventCounter = 0;
-  let created = 0;
-  let updated = 0;
+  let processed = 0;
   let skipped = 0;
 
-  eventsData.forEach(function (event) {
-    // skip events with no title or start/end dates
-    if (!event.id || !event.title || !event.start || !event.end) {
-      return;
-    }
+  // search for existing events in synchronisation range
+  const existingEvents = calendar.getEvents(fromDate, toDate);
 
+  // remove the existing masterschool events in synchronisation range
+  existingEvents.forEach(function (existingEvent) {
+    msEventId = existingEvent.getTag(MS_ID_TAG);
+    if (msEventId) {
+      Utilities.sleep(100); // pause before deleting event (quotas)
+      existingEvent.deleteEvent();
+      Logger.log(
+        `Resync: existing event: ${existingEvent.getTitle()} with ms id: ${msEventId} was deleted.`
+      );
+    }
+  });
+
+  // create new events from filtered events in synchronisation range
+  filteredEvents.forEach(function (event) {
     try {
       // prepare new event attributes
       const title = event.title;
       const startTime = new Date(event.start);
-      const endSearchTime = new Date(
-        startTime.getTime() + 14 * 24 * 60 * 60 * 1000
-      ); // 14 days
-
       const endTime = new Date(event.end);
+
       const url = event.vcUrl ? event.vcUrl : "";
       const desc = `${event.description || ""}${
         event.description !== "" ? " " + url : url
       }`;
 
-      // search for existing events within same timeframe
-      const events = calendar.getEvents(startTime, endSearchTime);
-      let existingEvent = null;
+      Utilities.sleep(1000); // pause before creating event (quotas)
 
-      // Loop through found events to check for a matching 'msEventId'
-      events.forEach(function (evt) {
-        if (evt.getTag("msEventId") === event.id) {
-          existingEvent = evt;
-        }
+      const newEvent = calendar.createEvent(title, startTime, endTime, {
+        description: desc,
       });
 
-      if (existingEvent) {
-        // If the event exists, extract its details
-        const existingEventTitle = existingEvent.getTitle();
-        const existingEventDesc = existingEvent.getDescription();
+      // set a ms id tag to created event (distinguishing it from other events on resync)
+      newEvent.setTag(MS_ID_TAG, event.id);
 
-        // update existing event details only when they differ
-        if (existingEventTitle !== title) {
-          existingEvent.setTitle(title);
-        }
-
-        if (existingEventDesc !== desc) {
-          existingEvent.setDescription(desc);
-        }
-
-        Logger.log(
-          `Updated event: ${event.id} - ${++eventCounter} out of ${eventsCount}`
-        );
-        ++updated;
-      } else {
-        Utilities.sleep(1000); // pause for a while before creating new events
-
-        const newEvent = calendar.createEvent(title, startTime, endTime, {
-          description: desc,
-        });
-        newEvent.setTag("msEventId", event.id);
-
-        Logger.log(
-          `Created event: ${event.id} - ${++eventCounter} out of ${eventsCount}`
-        );
-        ++created;
-      }
+      Logger.log(
+        `Created event: ${event.id} - ${++eventCounter} out of ${eventsCount}`
+      );
+      ++processed;
     } catch (e) {
       Logger.log(
         `Error adding event: ${e.toString()} - ${++eventCounter} out of ${eventsCount}. ${JSON.stringify(
@@ -126,13 +130,13 @@ function syncEventsToCalendar_(eventsData) {
     }
   });
 
-  return { eventsCount, created, updated, skipped };
+  return { eventsCount, processed, skipped };
 }
 
 /**
  * Runs the html service to display the UI
  */
-function doGet(request) {
+function doGet() {
   return HtmlService.createTemplateFromFile("Page").evaluate();
 }
 
@@ -142,15 +146,14 @@ function doGet(request) {
  */
 function startSync(formObject) {
   // extract form data
-  var bearerToken = formObject["bearer-token"].trim();
-  var commonCalendarId = formObject["common-calendar-id"].trim();
-  var oneOnOneCalendarId = formObject["one-on-one-calendar-id"].trim();
+  const bearerToken = formObject["bearer-token"].trim();
+  const calendarIds = formObject["calendar-ids"]
+    .split("\n")
+    .map((id) => id.trim())
+    .filter((id) => id !== "");
 
   // initiate synchronisation with the authentication data and payload
-  return fetchAndSyncEvents_(bearerToken, [
-    commonCalendarId,
-    oneOnOneCalendarId,
-  ]);
+  return fetchAndSyncEvents_(bearerToken, calendarIds);
 }
 
 /**
@@ -158,4 +161,16 @@ function startSync(formObject) {
  */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+// Only for testing purposes, deletes all events from calendar!
+function deleteAllEvents_() {
+  const calendar = CalendarApp.getDefaultCalendar();
+  const events = calendar.getEvents(
+    new Date("January 1, 2000"),
+    new Date("December 31, 2100")
+  );
+  for (var i = 0; i < events.length; i++) {
+    events[i].deleteEvent();
+  }
 }

@@ -1,5 +1,7 @@
 <script>
   const MAX_SYNC_TIME_MS = 1000 * 60 * 20;
+  const MS_BEARER_TOKEN_KEY = "msBearerToken";
+  const MS_CALENDAR_IDS_KEY = "msCalendarIds";
 
   // Prevent forms from submitting unexpectedly on error.
   function preventFormSubmit() {
@@ -9,7 +11,25 @@
     });
   }
 
-  window.addEventListener("load", preventFormSubmit);
+  // load saved bearer token and calendar ids from previous execution
+  // and inject them into form fields
+  function insertSavedFormData() {
+    let msBearerToken = localStorage.getItem(MS_BEARER_TOKEN_KEY);
+    let msCalendarIds = localStorage.getItem(MS_CALENDAR_IDS_KEY);
+
+    if (msBearerToken && msCalendarIds) {
+      document.getElementById("bearer-token").value = msBearerToken;
+      document.getElementById("calendar-ids").value = msCalendarIds;
+    }
+  }
+
+  // tasks to execute upon loading the page
+  function runLoadTasks() {
+    preventFormSubmit();
+    insertSavedFormData();
+  }
+
+  window.addEventListener("load", runLoadTasks);
 
   function showSpinner() {
     document.querySelector(".overlay").style.display = "block";
@@ -22,7 +42,7 @@
   }
 
   function setMessage(content) {
-    document.getElementById("messageContent").innerText = content;
+    document.getElementById("messageContent").innerHTML = content;
   }
 
   // Show the overlay and dialog with custom message, hide the spinner
@@ -45,10 +65,10 @@
 
   function displaySuccessMessage(results) {
     showDialog(
-      `Out of ${results.eventsCount} events: ${results.created} created, ${results.updated} updated, ${results.skipped} skipped!`
+      `<p>Out of ${results.eventsCount} events were: <br><br>${results.processed} processed<br>${results.skipped} skipped</p>`
     );
   }
-  r;
+
   function displayErrorMessage(results) {
     showDialog("Error, events were not synchronized! Please try again later.");
   }
@@ -57,21 +77,25 @@
     document.getElementById("submitBtn").disabled = disabled;
   }
 
+  function saveFormData(formObject) {
+    localStorage.setItem(MS_BEARER_TOKEN_KEY, formObject["bearer-token"].value);
+    localStorage.setItem(MS_CALENDAR_IDS_KEY, formObject["calendar-ids"].value);
+  }
+
   // handle submitting form (validation)
   function handleFormSubmit(formObject) {
     showSpinner();
-    disableSubmitBtn(true); // prevent resubmitting on sync
+
+    // prevent resubmitting on sync
+    disableSubmitBtn(true);
+
+    // save form data to localStorage for next access
+    saveFormData(formObject);
 
     // start synchronisation and register succes/error handlers
     google.script.run
       .withFailureHandler(displayErrorMessage)
       .withSuccessHandler(displaySuccessMessage)
       .startSync(formObject);
-
-    // avoid hanging spinner on backend freeze
-    timeout = setTimeout(() => {
-      showDialog("Synchronising took too long time! Please try again later.");
-      clearTimeout(timeout);
-    }, MAX_SYNC_TIME_MS);
   }
 </script>

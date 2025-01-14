@@ -10,7 +10,7 @@
       <p>
         Fill out the form, press <em>Submit</em> button and allow the app to
         access your Google Calendar. <br />Be aware that the event transfer can
-        take couple of minutes. <br />Author: Martin Schneider
+        take a while. <br />Author: Martin Schneider
       </p>
       <form id="request-data-form" onsubmit="handleFormSubmit(this)">
         <label for="bearer-token">Bearer Token:</label>
@@ -21,20 +21,14 @@
           placeholder="Enter Bearer Token (e.g., YOUR_TOKEN_HERE)"
           required
         ></textarea>
-        <label for="common-calendar-id">Common Calendar ID:</label>
-        <input
-          name="common-calendar-id"
-          placeholder="Enter 1st calendar ID (e.g., 20h4e267-68f9-7402-ee23-8d93f915470i)"
-          type="text"
+        <label for="calendar-ids">All Calendar IDs (each on new line):</label>
+        <textarea
+          id="calendar-ids"
+          name="calendar-ids"
+          rows="4"
+          placeholder="Enter Calendar IDs: each on a new line (Hit Enter after copying an ID)."
           required
-        />
-        <label for="one-on-one-calendar-id">1 on 1 Calendar ID:</label>
-        <input
-          name="one-on-one-calendar-id"
-          placeholder="Enter 2nd calendar ID (e.g., j326gf25-60i7-9f3g-34k5-4h6kk71k674k)"
-          type="text"
-          required
-        />
+        ></textarea>
         <input id="submitBtn" type="submit" value="Submit" />
       </form>
     </main>
@@ -43,7 +37,7 @@
     <div class="overlay"></div>
     <!-- Dialog to show synchronisation results -->
     <div class="dialog-container">
-      <div id="messageContent">Loading...</div>
+      <div id="messageContent"></div>
       <button class="ok-button" onclick="closeDialog()">OK</button>
     </div>
     <!-- Spinner container -->
